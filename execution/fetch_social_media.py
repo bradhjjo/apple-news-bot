@@ -12,74 +12,79 @@ from datetime import datetime, timedelta
 from typing import List, Dict
 
 
-def fetch_reddit_posts() -> List[Dict]:
-    """Reddit에서 애플 관련 포스트 수집 (read-only, 인증 불필요)"""
+def fetch_google_news_discussions() -> List[Dict]:
+    """Google News에서 애플 관련 토론/의견 기사 수집"""
     posts = []
     
     try:
-        # Reddit API 없이 웹 스크래핑 방식으로 변경 (더 안정적)
-        import requests
+        import feedparser
         
-        subreddits = ['apple', 'stocks', 'investing']
-        keywords = ['apple', 'aapl', 'iphone', 'ipad', 'mac', 'tim cook']
+        # Google News RSS - 의견/분석 기사
+        queries = [
+            'Apple stock analysis',
+            'AAPL stock opinion',
+            'Apple earnings discussion'
+        ]
         
-        for subreddit_name in subreddits:
+        for query in queries:
             try:
-                # Reddit JSON API 사용 (인증 불필요)
-                url = f"https://www.reddit.com/r/{subreddit_name}/hot.json?limit=25"
-                # 더 나은 User-Agent 사용
-                headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                }
+                url = f"https://news.google.com/rss/search?q={query.replace(' ', '+')}&hl=en-US&gl=US&ceid=US:en"
+                feed = feedparser.parse(url)
                 
-                # 재시도 로직
-                max_retries = 3
-                for attempt in range(max_retries):
-                    try:
-                        response = requests.get(url, headers=headers, timeout=15)
-                        if response.status_code == 200:
-                            break
-                        elif response.status_code == 429:  # Rate limit
-                            print(f"⚠️  Reddit r/{subreddit_name} rate limited, waiting...")
-                            time.sleep(5 * (attempt + 1))
-                        else:
-                            print(f"✗ Reddit r/{subreddit_name} returned status {response.status_code}")
-                            if attempt < max_retries - 1:
-                                time.sleep(2)
-                    except requests.exceptions.Timeout:
-                        print(f"⚠️  Reddit r/{subreddit_name} timeout, retrying...")
-                        if attempt < max_retries - 1:
-                            time.sleep(2)
+                for entry in feed.entries[:10]:
+                    posts.append({
+                        'platform': 'google_news',
+                        'title': entry.title,
+                        'url': entry.link,
+                        'score': 0,  # Google News doesn't have scores
+                        'comments': 0,
+                        'created': entry.get('published', datetime.now().isoformat()),
+                        'text': entry.get('summary', '')[:500]
+                    })
                 
-                if response.status_code != 200:
-                    continue
-                
-                data = response.json()
-                
-                for post in data['data']['children']:
-                    post_data = post['data']
-                    title_lower = post_data['title'].lower()
-                    
-                    # 키워드 필터링
-                    if any(keyword in title_lower for keyword in keywords):
-                        posts.append({
-                            'platform': 'reddit',
-                            'title': post_data['title'],
-                            'url': f"https://reddit.com{post_data['permalink']}",
-                            'score': post_data['score'],
-                            'comments': post_data['num_comments'],
-                            'created': datetime.fromtimestamp(post_data['created_utc']).isoformat(),
-                            'text': post_data.get('selftext', '')[:500]
-                        })
-                
-                print(f"✓ Reddit r/{subreddit_name}: {len([p for p in posts if subreddit_name in p['url']])} posts")
-                time.sleep(3)  # Reddit API 속도 제한 준수 (더 길게)
+                print(f"✓ Google News ({query}): {len([p for p in posts if query.split()[0].lower() in p['title'].lower()])} articles")
+                time.sleep(1)
                 
             except Exception as e:
-                print(f"✗ Reddit r/{subreddit_name} error: {e}")
+                print(f"✗ Google News ({query}) error: {e}")
         
     except Exception as e:
-        print(f"✗ Reddit API error: {e}")
+        print(f"✗ Google News error: {e}")
+    
+    return posts
+
+
+def fetch_seeking_alpha_rss() -> List[Dict]:
+    """Seeking Alpha RSS에서 애플 관련 분석 수집"""
+    posts = []
+    
+    try:
+        import feedparser
+        
+        # Seeking Alpha Apple 피드
+        url = "https://seekingalpha.com/api/sa/combined/AAPL.xml"
+        
+        try:
+            feed = feedparser.parse(url)
+            
+            for entry in feed.entries[:15]:
+                posts.append({
+                    'platform': 'seeking_alpha',
+                    'title': entry.title,
+                    'url': entry.link,
+                    'score': 0,
+                    'comments': 0,
+                    'created': entry.get('published', datetime.now().isoformat()),
+                    'text': entry.get('summary', '')[:500]
+                })
+            
+            print(f"✓ Seeking Alpha: {len(posts)} articles")
+            
+        except Exception as e:
+            print(f"✗ Seeking Alpha error: {e}")
+        
+    except Exception as e:
+        print(f"✗ Seeking Alpha RSS error: {e}")
     
     return posts
 
@@ -141,10 +146,16 @@ def main():
     all_posts = []
     
     try:
-        reddit_posts = fetch_reddit_posts()
-        all_posts.extend(reddit_posts)
+        google_posts = fetch_google_news_discussions()
+        all_posts.extend(google_posts)
     except Exception as e:
-        print(f"⚠️  Reddit collection failed: {e}")
+        print(f"⚠️  Google News collection failed: {e}")
+    
+    try:
+        sa_posts = fetch_seeking_alpha_rss()
+        all_posts.extend(sa_posts)
+    except Exception as e:
+        print(f"⚠️  Seeking Alpha collection failed: {e}")
     
     try:
         hn_posts = fetch_hackernews()
