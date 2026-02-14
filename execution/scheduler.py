@@ -12,8 +12,11 @@ from datetime import datetime
 from dotenv import load_dotenv
 import subprocess
 
-# 환경 변수 로드
-load_dotenv()
+# 환경 변수 로드 (.env 파일이 있으면 로드, 없으면 시스템 환경 변수 사용)
+try:
+    load_dotenv()
+except:
+    pass  # GitHub Actions 등에서는 .env 파일이 없을 수 있음
 
 def run_daily_workflow():
     """일일 워크플로우 실행"""

@@ -13,8 +13,11 @@ from telegram.error import TelegramError
 import asyncio
 from dotenv import load_dotenv
 
-# 환경 변수 로드
-load_dotenv()
+# 환경 변수 로드 (.env 파일이 있으면 로드, 없으면 시스템 환경 변수 사용)
+try:
+    load_dotenv()
+except:
+    pass  # GitHub Actions 등에서는 .env 파일이 없을 수 있음
 
 def format_gemini_report(report: dict) -> str:
     """Gemini 분석 리포트를 텔레그램 HTML 형식으로 변환"""
@@ -168,7 +171,8 @@ def main():
     chat_id = os.getenv('TELEGRAM_CHAT_ID')
     
     if not bot_token or not chat_id:
-        print("❌ Missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID in .env")
+        print("❌ Missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID environment variables")
+        print("   Please check GitHub Secrets or .env file")
         return False
     
     # Gemini 리포트 로드

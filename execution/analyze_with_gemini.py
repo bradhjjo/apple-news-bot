@@ -11,14 +11,17 @@ from typing import List, Dict
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-# 환경 변수 로드
-load_dotenv()
+# 환경 변수 로드 (.env 파일이 있으면 로드, 없으면 시스템 환경 변수 사용)
+try:
+    load_dotenv()
+except:
+    pass  # GitHub Actions 등에서는 .env 파일이 없을 수 있음
 
 def configure_gemini():
     """Gemini API 설정"""
     api_key = os.getenv('GEMINI_API_KEY')
     if not api_key:
-        raise ValueError("GEMINI_API_KEY not found in .env file")
+        raise ValueError("GEMINI_API_KEY not found in environment variables")
     
     genai.configure(api_key=api_key)
     # gemini-2.5-flash 모델 사용
