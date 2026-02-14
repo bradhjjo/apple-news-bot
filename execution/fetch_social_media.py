@@ -12,6 +12,70 @@ from datetime import datetime, timedelta
 from typing import List, Dict
 
 
+def fetch_reddit_rss() -> List[Dict]:
+    """Reddit RSS 피드로 애플 관련 포스트 수집 (우회 방법)"""
+    posts = []
+    
+    try:
+        import feedparser
+        
+        # Reddit RSS 피드 사용 (JSON API보다 차단 가능성 낮음)
+        subreddits = ['apple', 'stocks', 'investing', 'wallstreetbets']
+        keywords = ['apple', 'aapl', 'iphone', 'ipad', 'mac', 'tim cook']
+        
+        for subreddit_name in subreddits:
+            try:
+                # Reddit RSS 피드 URL (.rss 확장자 사용)
+                url = f"https://www.reddit.com/r/{subreddit_name}/hot.rss?limit=50"
+                
+                # feedparser는 User-Agent를 자동으로 설정
+                feed = feedparser.parse(url)
+                
+                if not feed.entries:
+                    print(f"✗ Reddit r/{subreddit_name} RSS returned no entries")
+                    continue
+                
+                for entry in feed.entries:
+                    title_lower = entry.title.lower()
+                    
+                    # 키워드 필터링
+                    if any(keyword in title_lower for keyword in keywords):
+                        # RSS에서 점수 추출 (summary에 포함되어 있음)
+                        score = 0
+                        comments = 0
+                        
+                        # summary에서 점수와 댓글 수 파싱 시도
+                        if hasattr(entry, 'summary'):
+                            import re
+                            score_match = re.search(r'(\d+)\s+points?', entry.summary)
+                            comments_match = re.search(r'(\d+)\s+comments?', entry.summary)
+                            if score_match:
+                                score = int(score_match.group(1))
+                            if comments_match:
+                                comments = int(comments_match.group(1))
+                        
+                        posts.append({
+                            'platform': 'reddit',
+                            'title': entry.title,
+                            'url': entry.link,
+                            'score': score,
+                            'comments': comments,
+                            'created': entry.get('published', datetime.now().isoformat()),
+                            'text': entry.get('summary', '')[:500]
+                        })
+                
+                print(f"✓ Reddit r/{subreddit_name} RSS: {len([p for p in posts if subreddit_name in p['url']])} posts")
+                time.sleep(2)  # RSS 피드도 속도 제한 준수
+                
+            except Exception as e:
+                print(f"✗ Reddit r/{subreddit_name} RSS error: {e}")
+        
+    except Exception as e:
+        print(f"✗ Reddit RSS error: {e}")
+    
+    return posts
+
+
 def fetch_google_news_discussions() -> List[Dict]:
     """Google News에서 애플 관련 토론/의견 기사 수집"""
     posts = []
@@ -144,6 +208,13 @@ def main():
     
     # 모든 플랫폼에서 포스트 수집
     all_posts = []
+    
+    # Reddit RSS 시도 (우회 방법)
+    try:
+        reddit_posts = fetch_reddit_rss()
+        all_posts.extend(reddit_posts)
+    except Exception as e:
+        print(f"⚠️  Reddit RSS collection failed: {e}")
     
     try:
         google_posts = fetch_google_news_discussions()
