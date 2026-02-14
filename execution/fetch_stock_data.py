@@ -17,15 +17,12 @@ def fetch_stock_data(symbol: str = 'AAPL') -> dict:
         # 티커 객체 생성
         ticker = yf.Ticker(symbol)
         
-        # 현재 정보
-        info = ticker.info
+        # 최근 5일 히스토리 (더 안정적인 방법)
+        hist = ticker.history(period='5d', auto_adjust=True, actions=False)
         
-        # 최근 5일 히스토리
-        hist = ticker.history(period='5d')
-        
-        if hist.empty:
+        if hist.empty or len(hist) == 0:
             print("✗ No historical data available")
-            return None
+            raise ValueError("No historical data returned from yfinance")
         
         # 최신 가격
         current_price = hist['Close'].iloc[-1]
@@ -52,28 +49,45 @@ def fetch_stock_data(symbol: str = 'AAPL') -> dict:
         else:
             trend = "데이터 부족"
         
+        # info 데이터 안전하게 가져오기
+        try:
+            info = ticker.info
+            market_cap = info.get('marketCap', 0) if info else 0
+            week_high = info.get('fiftyTwoWeekHigh', 0) if info else 0
+            week_low = info.get('fiftyTwoWeekLow', 0) if info else 0
+        except:
+            # info 조회 실패 시 기본값 사용
+            market_cap = 0
+            week_high = 0
+            week_low = 0
+        
         # 결과 구성
         stock_data = {
             'symbol': symbol,
             'current_price': round(float(current_price), 2),
             'change': round(float(change), 2),
             'change_percent': round(float(change_percent), 2),
-            'volume': int(hist['Volume'].iloc[-1]) if 'Volume' in hist else 0,
-            'market_cap': info.get('marketCap', 0),
-            '52_week_high': info.get('fiftyTwoWeekHigh', 0),
-            '52_week_low': info.get('fiftyTwoWeekLow', 0),
+            'volume': int(hist['Volume'].iloc[-1]) if 'Volume' in hist.columns and not hist['Volume'].empty else 0,
+            'market_cap': market_cap,
+            '52_week_high': week_high,
+            '52_week_low': week_low,
             'trend_5day': trend,
             'last_updated': datetime.now().isoformat()
         }
         
         print(f"✓ Current price: ${stock_data['current_price']} ({stock_data['change_percent']:+.2f}%)")
         print(f"✓ 5-day trend: {trend}")
+        print(f"✓ Volume: {stock_data['volume']:,}")
         
         return stock_data
         
     except Exception as e:
         print(f"✗ Error fetching stock data: {e}")
+        print(f"✗ Error type: {type(e).__name__}")
         print("⚠️  Returning placeholder data...")
+        import traceback
+        traceback.print_exc()
+        
         # 오류 시 기본 데이터 반환 (워크플로우 계속 진행)
         return {
             'symbol': symbol,
