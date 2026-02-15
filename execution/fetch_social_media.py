@@ -15,35 +15,35 @@ from typing import List, Dict
 def fetch_reddit_rss() -> List[Dict]:
     """Reddit RSS 피드로 애플 관련 포스트 수집 (우회 방법)"""
     posts = []
-    
+
     try:
         import feedparser
-        
+
         # Reddit RSS 피드 사용 (JSON API보다 차단 가능성 낮음)
         subreddits = ['apple', 'stocks', 'investing', 'wallstreetbets']
         keywords = ['apple', 'aapl', 'iphone', 'ipad', 'mac', 'tim cook']
-        
+
         for subreddit_name in subreddits:
             try:
                 # Reddit RSS 피드 URL (.rss 확장자 사용)
                 url = f"https://www.reddit.com/r/{subreddit_name}/hot.rss?limit=50"
-                
+
                 # feedparser는 User-Agent를 자동으로 설정
                 feed = feedparser.parse(url)
-                
+
                 if not feed.entries:
                     print(f"✗ Reddit r/{subreddit_name} RSS returned no entries")
                     continue
-                
+
                 for entry in feed.entries:
                     title_lower = entry.title.lower()
-                    
+
                     # 키워드 필터링
                     if any(keyword in title_lower for keyword in keywords):
                         # RSS에서 점수 추출 (summary에 포함되어 있음)
                         score = 0
                         comments = 0
-                        
+
                         # summary에서 점수와 댓글 수 파싱 시도
                         if hasattr(entry, 'summary'):
                             import re
@@ -53,7 +53,7 @@ def fetch_reddit_rss() -> List[Dict]:
                                 score = int(score_match.group(1))
                             if comments_match:
                                 comments = int(comments_match.group(1))
-                        
+
                         posts.append({
                             'platform': 'reddit',
                             'title': entry.title,
@@ -63,38 +63,38 @@ def fetch_reddit_rss() -> List[Dict]:
                             'created': entry.get('published', datetime.now().isoformat()),
                             'text': entry.get('summary', '')[:500]
                         })
-                
+
                 print(f"✓ Reddit r/{subreddit_name} RSS: {len([p for p in posts if subreddit_name in p['url']])} posts")
                 time.sleep(2)  # RSS 피드도 속도 제한 준수
-                
+
             except Exception as e:
                 print(f"✗ Reddit r/{subreddit_name} RSS error: {e}")
-        
+
     except Exception as e:
         print(f"✗ Reddit RSS error: {e}")
-    
+
     return posts
 
 
 def fetch_google_news_discussions() -> List[Dict]:
     """Google News에서 애플 관련 토론/의견 기사 수집"""
     posts = []
-    
+
     try:
         import feedparser
-        
+
         # Google News RSS - 의견/분석 기사
         queries = [
             'Apple stock analysis',
             'AAPL stock opinion',
             'Apple earnings discussion'
         ]
-        
+
         for query in queries:
             try:
                 url = f"https://news.google.com/rss/search?q={query.replace(' ', '+')}&hl=en-US&gl=US&ceid=US:en"
                 feed = feedparser.parse(url)
-                
+
                 for entry in feed.entries[:10]:
                     posts.append({
                         'platform': 'google_news',
@@ -105,32 +105,32 @@ def fetch_google_news_discussions() -> List[Dict]:
                         'created': entry.get('published', datetime.now().isoformat()),
                         'text': entry.get('summary', '')[:500]
                     })
-                
+
                 print(f"✓ Google News ({query}): {len([p for p in posts if query.split()[0].lower() in p['title'].lower()])} articles")
                 time.sleep(1)
-                
+
             except Exception as e:
                 print(f"✗ Google News ({query}) error: {e}")
-        
+
     except Exception as e:
         print(f"✗ Google News error: {e}")
-    
+
     return posts
 
 
 def fetch_seeking_alpha_rss() -> List[Dict]:
     """Seeking Alpha RSS에서 애플 관련 분석 수집"""
     posts = []
-    
+
     try:
         import feedparser
-        
+
         # Seeking Alpha Apple 피드
         url = "https://seekingalpha.com/api/sa/combined/AAPL.xml"
-        
+
         try:
             feed = feedparser.parse(url)
-            
+
             for entry in feed.entries[:15]:
                 posts.append({
                     'platform': 'seeking_alpha',
@@ -141,36 +141,36 @@ def fetch_seeking_alpha_rss() -> List[Dict]:
                     'created': entry.get('published', datetime.now().isoformat()),
                     'text': entry.get('summary', '')[:500]
                 })
-            
+
             print(f"✓ Seeking Alpha: {len(posts)} articles")
-            
+
         except Exception as e:
             print(f"✗ Seeking Alpha error: {e}")
-        
+
     except Exception as e:
         print(f"✗ Seeking Alpha RSS error: {e}")
-    
+
     return posts
 
 
 def fetch_hackernews() -> List[Dict]:
     """Hacker News에서 애플 관련 포스트 수집"""
     posts = []
-    
+
     try:
         # 최신 스토리 ID 가져오기
         top_stories_url = "https://hacker-news.firebaseio.com/v0/topstories.json"
         response = requests.get(top_stories_url, timeout=10)
         story_ids = response.json()[:100]  # 상위 100개
-        
+
         keywords = ['apple', 'aapl', 'iphone', 'ipad', 'mac', 'ios']
-        
+
         for story_id in story_ids[:50]:  # 최대 50개 확인
             try:
                 story_url = f"https://hacker-news.firebaseio.com/v0/item/{story_id}.json"
                 story_response = requests.get(story_url, timeout=5)
                 story = story_response.json()
-                
+
                 if story and 'title' in story:
                     title_lower = story['title'].lower()
                     if any(keyword in title_lower for keyword in keywords):
@@ -185,19 +185,19 @@ def fetch_hackernews() -> List[Dict]:
                         })
             except Exception as e:
                 continue  # 개별 스토리 오류는 스킵
-        
+
         print(f"✓ Hacker News: {len(posts)} posts")
-        
+
     except Exception as e:
         print(f"✗ Hacker News error: {e}")
-    
+
     return posts
 
 def filter_and_sort(posts: List[Dict]) -> List[Dict]:
     """점수 기준으로 정렬 및 필터링"""
     # 점수 기준 내림차순 정렬
     sorted_posts = sorted(posts, key=lambda x: x['score'], reverse=True)
-    
+
     # 24시간 이내 포스트만 (간단한 필터링)
     # 실제로는 created 시간 파싱 필요하지만 여기서는 상위 항목 유지
     return sorted_posts[:30]  # 상위 30개
@@ -205,53 +205,53 @@ def filter_and_sort(posts: List[Dict]) -> List[Dict]:
 def main():
     """메인 실행 함수"""
     print("💬 Starting social media collection...")
-    
+
     # 모든 플랫폼에서 포스트 수집
     all_posts = []
-    
+
     # Reddit RSS 시도 (우회 방법)
     try:
         reddit_posts = fetch_reddit_rss()
         all_posts.extend(reddit_posts)
     except Exception as e:
         print(f"⚠️  Reddit RSS collection failed: {e}")
-    
+
     try:
         google_posts = fetch_google_news_discussions()
         all_posts.extend(google_posts)
     except Exception as e:
         print(f"⚠️  Google News collection failed: {e}")
-    
+
     try:
         sa_posts = fetch_seeking_alpha_rss()
         all_posts.extend(sa_posts)
     except Exception as e:
         print(f"⚠️  Seeking Alpha collection failed: {e}")
-    
+
     try:
         hn_posts = fetch_hackernews()
         all_posts.extend(hn_posts)
     except Exception as e:
         print(f"⚠️  Hacker News collection failed: {e}")
-    
+
     # 정렬 및 필터링
     filtered_posts = filter_and_sort(all_posts)
     print(f"\n📊 Total filtered posts: {len(filtered_posts)}")
-    
+
     # 결과 저장 (빈 리스트라도 저장)
     output_dir = '.tmp'
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, 'social_posts.json')
-    
+
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(filtered_posts, f, ensure_ascii=False, indent=2)
-    
+
     if len(filtered_posts) == 0:
         print("⚠️  No social media posts collected, but continuing workflow...")
         print(f"✅ Saved empty posts list to {output_file}")
     else:
         print(f"✅ Saved {len(filtered_posts)} posts to {output_file}")
-    
+
     # 항상 성공 반환 (소셜 미디어 수집 실패가 전체 워크플로우를 중단하지 않도록)
     return True
 

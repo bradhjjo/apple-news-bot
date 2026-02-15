@@ -42,6 +42,15 @@ Before writing a script, check `execution/` per your directive. Only create new 
 **3. Update directives as you learn**
 Directives are living documents. When you discover API constraints, better approaches, common errors, or timing expectations—update the directive. But don't create or overwrite directives without asking unless explicitly told to. Directives are your instruction set and must be preserved (and improved upon over time, not extemporaneously used and then discarded).
 
+**4. Security Safeguards (CRITICAL)**
+You must prevent accidental exposure of secrets at all costs.
+
+- **Pre-commit Scan**: Before every `git commit`, perform a secret scan of the changes.
+- **Pattern Matching**: Use the regex patterns defined in `SECURITY.md` (e.g., Gemini keys, Telegram tokens) to scan `git diff`.
+- **Environment Isolation**: Never stage `.env` files. Always ensure they are in `.gitignore`.
+- **Placeholder Rule**: Ensure all documentation and committed code uses placeholders (e.g., `YOUR_API_KEY`) instead of real tokens.
+- **Manual Verification**: If you are unsure if a change contains a secret, ask the user for confirmation before committing.
+
 ## Self-annealing loop
 
 Errors are learning opportunities. When something breaks:

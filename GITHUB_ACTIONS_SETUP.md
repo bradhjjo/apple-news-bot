@@ -12,14 +12,14 @@
 
 1. [GitHub](https://github.com) 로그인
 2. 우측 상단 `+` → `New repository` 클릭
-3. 저장소 이름: `apple-news-bot` (원하는 이름)
+3. 저장소 이름: `apple-scout` (추천)
 4. **Public** 또는 **Private** 선택 (둘 다 무료)
 5. `Create repository` 클릭
 
 ### 옵션 B: GitHub CLI로
 
 ```bash
-gh repo create apple-news-bot --public --source=. --remote=origin --push
+gh repo create apple-scout --public --source=. --remote=origin --push
 ```
 
 ---
@@ -27,7 +27,7 @@ gh repo create apple-news-bot --public --source=. --remote=origin --push
 ## 2️⃣ 코드를 GitHub에 푸시
 
 ```bash
-cd c:\appdev\stocknews_bot
+cd c:\appdev\apple-scout
 
 # Git 초기화 (아직 안했다면)
 git init
@@ -36,10 +36,10 @@ git init
 git add .
 
 # 커밋
-git commit -m "Initial commit: Apple News Bot with Gemini AI"
+git commit -m "Initial commit: AppleScout Agent with Gemini AI"
 
 # GitHub 저장소 연결 (본인의 username으로 변경)
-git remote add origin https://github.com/YOUR_USERNAME/apple-news-bot.git
+git remote add origin https://github.com/YOUR_USERNAME/apple-scout.git
 
 # 푸시
 git push -u origin main
@@ -82,12 +82,12 @@ git push -u origin main
 ### GitHub Actions 페이지에서
 
 1. 저장소의 `Actions` 탭 클릭
-2. 왼쪽에서 `Daily Apple News Bot` 워크플로우 선택
+2. 왼쪽에서 `Daily AppleScout Agent` 워크플로우 선택
 3. 다음 실행 예정 시간 확인
 
 ### 수동으로 테스트 실행
 
-1. `Actions` 탭 → `Daily Apple News Bot` 선택
+1. `Actions` 탭 → `Daily AppleScout Agent` 선택
 2. 우측 `Run workflow` 버튼 클릭
 3. `Run workflow` 확인
 4. 약 1분 후 텔레그램으로 메시지 도착!
@@ -134,7 +134,7 @@ schedule:
 ### 실행 로그 확인
 
 1. `Actions` 탭 → 최근 실행 클릭
-2. `Run Apple News Bot` 단계 클릭
+2. `Run AppleScout Agent` 단계 클릭
 3. 상세 로그 확인
 
 ### 실패 시

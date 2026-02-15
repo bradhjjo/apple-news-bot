@@ -12,21 +12,21 @@ from datetime import datetime, timedelta
 def fetch_stock_data(symbol: str = 'AAPL') -> dict:
     """Yahoo Finance에서 주가 데이터 수집"""
     print(f"📈 Fetching stock data for {symbol}...")
-    
+
     try:
         # 티커 객체 생성
         ticker = yf.Ticker(symbol)
-        
+
         # 최근 5일 히스토리 (더 안정적인 방법)
         hist = ticker.history(period='5d', auto_adjust=True, actions=False)
-        
+
         if hist.empty or len(hist) == 0:
             print("✗ No historical data available")
             raise ValueError("No historical data returned from yfinance")
-        
+
         # 최신 가격
         current_price = hist['Close'].iloc[-1]
-        
+
         # 전일 대비 변동
         if len(hist) > 1:
             prev_price = hist['Close'].iloc[-2]
@@ -35,7 +35,7 @@ def fetch_stock_data(symbol: str = 'AAPL') -> dict:
         else:
             change = 0
             change_percent = 0
-        
+
         # 5일 트렌드 계산
         if len(hist) >= 5:
             first_price = hist['Close'].iloc[0]
@@ -48,7 +48,7 @@ def fetch_stock_data(symbol: str = 'AAPL') -> dict:
                 trend = "보합"
         else:
             trend = "데이터 부족"
-        
+
         # info 데이터 안전하게 가져오기
         try:
             info = ticker.info
@@ -60,7 +60,7 @@ def fetch_stock_data(symbol: str = 'AAPL') -> dict:
             market_cap = 0
             week_high = 0
             week_low = 0
-        
+
         # 결과 구성
         stock_data = {
             'symbol': symbol,
@@ -74,20 +74,20 @@ def fetch_stock_data(symbol: str = 'AAPL') -> dict:
             'trend_5day': trend,
             'last_updated': datetime.now().isoformat()
         }
-        
+
         print(f"✓ Current price: ${stock_data['current_price']} ({stock_data['change_percent']:+.2f}%)")
         print(f"✓ 5-day trend: {trend}")
         print(f"✓ Volume: {stock_data['volume']:,}")
-        
+
         return stock_data
-        
+
     except Exception as e:
         print(f"✗ Error fetching stock data: {e}")
         print(f"✗ Error type: {type(e).__name__}")
         print("⚠️  Returning placeholder data...")
         import traceback
         traceback.print_exc()
-        
+
         # 오류 시 기본 데이터 반환 (워크플로우 계속 진행)
         return {
             'symbol': symbol,
@@ -107,10 +107,10 @@ def fetch_stock_data(symbol: str = 'AAPL') -> dict:
 def main():
     """메인 실행 함수"""
     print("💰 Starting stock data collection...")
-    
+
     # AAPL 주가 데이터 수집
     stock_data = fetch_stock_data('AAPL')
-    
+
     if not stock_data:
         print("❌ Failed to fetch stock data")
         # 빈 데이터라도 파일 생성
@@ -127,17 +127,17 @@ def main():
             'last_updated': datetime.now().isoformat()
         }
 
-    
+
     # 결과 저장
     output_dir = '.tmp'
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, 'stock_data.json')
-    
+
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(stock_data, f, ensure_ascii=False, indent=2)
-    
+
     print(f"✅ Saved stock data to {output_file}")
-    
+
     return True
 
 if __name__ == '__main__':

@@ -22,7 +22,7 @@ def configure_gemini():
     api_key = os.getenv('GEMINI_API_KEY')
     if not api_key:
         raise ValueError("GEMINI_API_KEY not found in environment variables")
-    
+
     genai.configure(api_key=api_key)
     # gemini-2.5-flash 모델 사용
     return genai.GenerativeModel('gemini-2.5-flash')
@@ -30,12 +30,12 @@ def configure_gemini():
 
 def analyze_with_gemini(news_articles: List[Dict], social_posts: List[Dict], stock_data: Dict) -> Dict:
     """Gemini AI로 뉴스 분석 및 요약"""
-    
+
     print("🤖 Starting Gemini AI analysis...")
-    
+
     try:
         model = configure_gemini()
-        
+
         # 프롬프트 구성
         prompt = f"""당신은 애플(Apple Inc.) 전문 애널리스트입니다. 다음 데이터를 분석하여 한국어로 종합 리포트를 작성해주세요.
 
@@ -46,17 +46,17 @@ def analyze_with_gemini(news_articles: List[Dict], social_posts: List[Dict], sto
 
 ## 최신 뉴스 ({len(news_articles)}개)
 """
-        
+
         # 상위 10개 뉴스 추가
         for i, article in enumerate(news_articles[:10], 1):
             prompt += f"{i}. {article['title']} (출처: {article['source']})\n"
-        
+
         prompt += f"\n## 소셜 미디어 반응 ({len(social_posts)}개)\n"
-        
+
         # 상위 5개 소셜 포스트 추가
         for i, post in enumerate(social_posts[:5], 1):
             prompt += f"{i}. {post['title']} (점수: {post.get('score', 0)})\n"
-        
+
         prompt += """
 
 다음 형식으로 JSON 응답을 작성해주세요:
@@ -81,10 +81,10 @@ JSON만 반환하고 다른 텍스트는 포함하지 마세요."""
 
         # Gemini API 호출
         response = model.generate_content(prompt)
-        
+
         # JSON 파싱
         response_text = response.text.strip()
-        
+
         # JSON 코드 블록 제거 (있는 경우)
         if response_text.startswith('```json'):
             response_text = response_text[7:]
@@ -92,19 +92,19 @@ JSON만 반환하고 다른 텍스트는 포함하지 마세요."""
             response_text = response_text[3:]
         if response_text.endswith('```'):
             response_text = response_text[:-3]
-        
+
         analysis = json.loads(response_text.strip())
-        
+
         print("✓ Gemini analysis completed")
         print(f"✓ Sentiment: {analysis.get('overall_sentiment')}")
         print(f"✓ Key insights: {len(analysis.get('key_insights', []))}")
-        
+
         return analysis
-        
+
     except Exception as e:
         print(f"✗ Gemini analysis failed: {e}")
         print("⚠️  Falling back to basic analysis...")
-        
+
         # 폴백: 기본 분석 반환
         return {
             "overall_sentiment": "중립",
@@ -125,7 +125,7 @@ JSON만 반환하고 다른 텍스트는 포함하지 마세요."""
 def load_data():
     """수집된 데이터 로드"""
     data = {}
-    
+
     # 뉴스 데이터
     news_file = '.tmp/news_articles.json'
     if os.path.exists(news_file):
@@ -133,7 +133,7 @@ def load_data():
             data['news'] = json.load(f)
     else:
         data['news'] = []
-    
+
     # 소셜 미디어 데이터
     social_file = '.tmp/social_posts.json'
     if os.path.exists(social_file):
@@ -141,7 +141,7 @@ def load_data():
             data['social'] = json.load(f)
     else:
         data['social'] = []
-    
+
     # 주가 데이터
     stock_file = '.tmp/stock_data.json'
     if os.path.exists(stock_file):
@@ -149,41 +149,41 @@ def load_data():
             data['stock'] = json.load(f)
     else:
         data['stock'] = {}
-    
+
     return data
 
 def main():
     """메인 실행 함수"""
     print("🤖 Starting Gemini AI content analysis...")
-    
+
     # 데이터 로드
     data = load_data()
-    
+
     if not data['news'] and not data['social']:
         print("❌ No data to analyze")
         return False
-    
+
     print(f"✓ Loaded {len(data['news'])} news articles")
     print(f"✓ Loaded {len(data['social'])} social posts")
-    
+
     # Gemini AI 분석
     gemini_analysis = analyze_with_gemini(
         data['news'],
         data['social'],
         data['stock']
     )
-    
+
     # 기존 TextBlob 분석도 유지 (폴백용)
     from analyze_content import analyze_sentiment
-    
+
     textblob_sentiments = []
     for article in data['news'][:10]:
         text = f"{article['title']} {article.get('summary', '')}"
         sentiment, score = analyze_sentiment(text)
         textblob_sentiments.append(score)
-    
+
     textblob_avg = sum(textblob_sentiments) / len(textblob_sentiments) if textblob_sentiments else 0
-    
+
     # 결과 구성
     report = {
         'date': datetime.now().strftime('%Y-%m-%d'),
@@ -195,17 +195,17 @@ def main():
         'top_news': data['news'][:5],
         'top_social': data['social'][:5]
     }
-    
+
     # 결과 저장
     output_dir = '.tmp'
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, 'gemini_report.json')
-    
+
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
-    
+
     print(f"✅ Saved Gemini analysis report to {output_file}")
-    
+
     return True
 
 if __name__ == '__main__':
