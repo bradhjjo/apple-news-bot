@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-스케줄러 스크립트
-매일 지정된 시간에 메인 워크플로우 실행
+Deprecated local scheduler.
+
+Prefer OpenClaw cron or another external scheduler calling
+`applescout/scripts/run_applescout.py`.
 """
 
-import schedule
 import time
 import os
 import sys
@@ -46,16 +47,19 @@ def run_daily_workflow():
 
 def main():
     """메인 스케줄러"""
-    # 환경 변수에서 스케줄 시간 가져오기 (기본값: 07:00)
-    schedule_time = os.getenv('SCHEDULE_TIME', '07:00')
+    # 환경 변수에서 스케줄 시간 가져오기 (기본값: 06:00)
+    schedule_time = os.getenv('SCHEDULE_TIME', '06:00')
+    try:
+        scheduled_hour, scheduled_minute = [int(part) for part in schedule_time.split(":", 1)]
+    except ValueError:
+        print(f"❌ Invalid SCHEDULE_TIME: {schedule_time}. Expected HH:MM.")
+        return 1
 
     print("🤖 AppleScout Agent Scheduler Started")
+    print("⚠️  Deprecated: prefer OpenClaw cron with applescout/scripts/run_applescout.py")
     print(f"📅 Scheduled to run daily at {schedule_time}")
     print(f"⏰ Current time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("\nPress Ctrl+C to stop the scheduler\n")
-
-    # 스케줄 등록
-    schedule.every().day.at(schedule_time).do(run_daily_workflow)
 
     # 테스트 모드: 즉시 한 번 실행 (선택사항)
     if '--test' in sys.argv:
@@ -63,13 +67,22 @@ def main():
         run_daily_workflow()
 
     # 스케줄러 루프
+    last_run_date = None
     try:
         while True:
-            schedule.run_pending()
-            time.sleep(60)  # 1분마다 체크
+            now = datetime.now()
+            should_run = (
+                now.hour == scheduled_hour
+                and now.minute == scheduled_minute
+                and last_run_date != now.date()
+            )
+            if should_run:
+                run_daily_workflow()
+                last_run_date = now.date()
+            time.sleep(30)
     except KeyboardInterrupt:
         print("\n\n👋 Scheduler stopped by user")
         sys.exit(0)
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main() or 0)

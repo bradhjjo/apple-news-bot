@@ -1,15 +1,15 @@
 # AppleScout Agent with Gemini AI
 
-This project is an automated system designed to monitor and analyze Apple-related news, social media trends, and stock market data. It generates comprehensive reports using Gemini Pro 2.5 and delivers them via Telegram every morning at 7:00 AM.
+This project is an automated system designed to monitor and analyze Apple-related news, social media trends, and stock market data. It generates comprehensive reports using Gemini via the `google-genai` SDK and delivers them via Telegram.
 
 ## Key Features
 
-- AI-Powered Analysis: Utilizes Gemini Pro 2.5 for sophisticated news summarization, sentiment analysis, and insight extraction.
+- AI-Powered Analysis: Utilizes Gemini for sophisticated news summarization, sentiment analysis, and insight extraction.
 - Multi-Source Aggregation: Collects data from Google News, Apple Newsroom, and leading technology publications via RSS.
 - Social Media Monitoring: Tracks relevant discussions on Reddit and Hacker News to gauge community sentiment.
-- Market Intelligence: Integrates $AAPL stock price data and trend analysis through Yahoo Finance.
+- Market Intelligence: Integrates $AAPL stock price data and trend analysis through Stooq, Yahoo Finance Chart API, and Google Finance fallbacks.
 - Risk & Opportunity Assessment: Automatically identifies potential market risks and opportunities based on collected data.
-- Automated Reporting: Delivers formatted Markdown reports directly to a specified Telegram chat.
+- Automated Reporting: Delivers formatted HTML reports directly to a specified Telegram chat.
 
 ## Architecture
 
@@ -18,6 +18,29 @@ The project adheres to a 3-layer architecture for improved reliability and maint
 1. Directives (Layer 1): Standard Operating Procedures (SOPs) defined in markdown files within the `directives/` directory.
 2. Orchestration (Layer 2): AI-driven logic that processes directives and manages the workflow.
 3. Execution (Layer 3): Deterministic Python scripts in the `execution/` folder that handle API interactions and data processing.
+
+## Skill-Oriented Structure
+
+The repo now includes an OpenClaw/AppleScout skill layout under `applescout/`:
+
+- `applescout/SKILL.md`
+- `applescout/scripts/`
+- `applescout/prompts/`
+- `applescout/references/`
+
+The new primary entrypoint is:
+
+```bash
+python applescout/scripts/run_applescout.py
+```
+
+For validation without Telegram delivery:
+
+```bash
+python applescout/scripts/run_applescout.py --dry-run
+```
+
+Existing `execution/*.py` scripts are kept as backward-compatible wrappers.
 
 ## Getting Started
 
@@ -69,23 +92,22 @@ The project adheres to a 3-layer architecture for improved reliability and maint
 To run the entire workflow manually:
 
 ```bash
-python execution/main.py
+python applescout/scripts/run_applescout.py
 ```
 
 ### Scheduled Execution
 
-The system includes a built-in scheduler for daily automation:
+`execution/scheduler.py` is deprecated. Prefer OpenClaw cron or another external scheduler invoking:
 
 ```bash
-python execution/scheduler.py
+python applescout/scripts/run_applescout.py
 ```
-
-Use the `--test` flag to trigger an immediate execution for verification.
 
 ## Project Structure
 
-- `directives/`: SOPs for data collection, analysis, and reporting.
-- `execution/`: Core Python scripts for individual tasks.
+- `directives/`: Legacy SOPs retained for the original architecture.
+- `applescout/`: Skill-oriented docs and runnable scripts for OpenClaw use.
+- `execution/`: Backward-compatible entrypoints that delegate to the skill scripts.
 - `.tmp/`: Directory for intermediate data storage (auto-generated).
 - `AGENTS.md`: Technical documentation on the agentic architecture.
 - `README_KR.md`: Korean version of the documentation.
@@ -102,11 +124,11 @@ Use the `--test` flag to trigger an immediate execution for verification.
 
 ## Cloud Deployment (GitHub Actions)
 
-The project includes a pre-configured GitHub Actions workflow for serverless daily execution.
+The project includes a GitHub Actions workflow for manual cloud execution. The scheduled trigger is currently disabled because local Windows Task Scheduler is the active automation path.
 
 1. Push the code to a private GitHub repository.
 2. Navigate to Settings > Secrets and variables > Actions and add your `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, and `GEMINI_API_KEY`.
-3. The bot will automatically run daily at 13:00 UTC (7:00 AM local time).
+3. Run the workflow manually from the GitHub Actions tab when needed.
 
 For more details, refer to [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md).
 

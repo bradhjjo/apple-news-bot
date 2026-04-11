@@ -1,11 +1,12 @@
 name: Daily AppleScout Agent
 
-on:
-  schedule:
-    # 매일 UTC 13:00 (CST 7:00 AM) 실행
-    - cron: '0 13 * * *'
+  # ⚠️ 로컬 Windows Task Scheduler로 전환됨 (2026-02-28)
+  # 스케줄 트리거 비활성화 - 로컬에서 매일 오전 6시 실행
+  # schedule:
+  #   - cron: '0 12 * * *'
 
-  # 수동 실행 가능
+on:
+  # 수동 실행만 가능
   workflow_dispatch:
 
 jobs:
@@ -33,7 +34,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TIMEZONE: America/Chicago
-          SCHEDULE_TIME: "07:00"
+          SCHEDULE_TIME: "06:00"
         run: |
           python execution/main.py
 

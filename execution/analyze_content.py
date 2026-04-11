@@ -17,7 +17,7 @@ def load_data():
     data = {}
 
     # 뉴스 데이터
-    news_file = '.tmp/news_articles.json'
+    news_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.tmp', 'news_articles.json')
     if os.path.exists(news_file):
         with open(news_file, 'r', encoding='utf-8') as f:
             data['news'] = json.load(f)
@@ -25,7 +25,7 @@ def load_data():
         data['news'] = []
 
     # 소셜 미디어 데이터
-    social_file = '.tmp/social_posts.json'
+    social_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.tmp', 'social_posts.json')
     if os.path.exists(social_file):
         with open(social_file, 'r', encoding='utf-8') as f:
             data['social'] = json.load(f)
@@ -33,7 +33,7 @@ def load_data():
         data['social'] = []
 
     # 주가 데이터
-    stock_file = '.tmp/stock_data.json'
+    stock_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.tmp', 'stock_data.json')
     if os.path.exists(stock_file):
         with open(stock_file, 'r', encoding='utf-8') as f:
             data['stock'] = json.load(f)
@@ -195,12 +195,14 @@ def main():
     report = analyze_content(data)
 
     # 결과 저장
-    output_dir = '.tmp'
+    output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.tmp')
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, 'daily_report.json')
 
-    with open(output_file, 'w', encoding='utf-8') as f:
+    tmp_output_file = output_file + '.tmp'
+    with open(tmp_output_file, 'w', encoding='utf-8') as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
+    os.replace(tmp_output_file, output_file)
 
     print(f"✅ Saved analysis report to {output_file}")
 

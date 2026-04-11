@@ -15,11 +15,23 @@
 
 ## Data Source
 
-### Yahoo Finance (yfinance)
+### 1. Stooq CSV
 
 - 무료, API 키 불필요
-- 실시간에 가까운 주가 데이터
-- 거래량, 시가총액 등 포함
+- 최근 일별 OHLCV 데이터 제공
+- 1차 소스로 사용
+
+### 2. Yahoo Finance Chart API
+
+- 무료, API 키 불필요
+- 5일 가격, 거래량, 일부 메타데이터 제공
+- Stooq 실패 시 폴백
+
+### 3. Google Finance Page
+
+- 무료, API 키 불필요
+- 현재가와 당일 변동률 스크래핑
+- 앞선 소스 실패 시 최종 폴백
 
 ## Output
 
@@ -44,7 +56,8 @@
 
 - **시장 휴장**: 최근 거래일 데이터 사용
 - **데이터 지연**: 15-20분 지연 가능 (무료 데이터)
-- **네트워크 오류**: 재시도 후 실패 시 null 반환
+- **네트워크 오류**: 다음 데이터 소스로 폴백
+- **모든 소스 실패**: `source: "none"` 및 `current_price: 0` placeholder 반환 후 워크플로우 계속 진행
 
 ## Success Criteria
 

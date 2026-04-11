@@ -1,8 +1,8 @@
-# GitHub Actions 자동 배포 가이드
+# GitHub Actions 수동 실행 가이드
 
-## 🚀 GitHub Actions로 자동 실행 설정하기
+## 🚀 GitHub Actions 수동 실행 설정하기
 
-이 가이드를 따라하면 **15분 안에** 매일 아침 7시 자동 실행이 완료됩니다!
+현재 저장소의 GitHub Actions 워크플로우는 수동 실행 전용입니다. 정기 실행은 로컬 Windows Task Scheduler가 매일 오전 6시에 담당합니다.
 
 ---
 
@@ -77,13 +77,13 @@ git push -u origin main
 
 ---
 
-## 4️⃣ 자동 실행 확인
+## 4️⃣ 수동 실행 확인
 
 ### GitHub Actions 페이지에서
 
 1. 저장소의 `Actions` 탭 클릭
 2. 왼쪽에서 `Daily AppleScout Agent` 워크플로우 선택
-3. 다음 실행 예정 시간 확인
+3. `Run workflow` 버튼으로 필요할 때 실행
 
 ### 수동으로 테스트 실행
 
@@ -96,21 +96,24 @@ git push -u origin main
 
 ## 📅 스케줄 설정
 
-현재 설정: **매일 UTC 13:00 (CST 7:00 AM)**
+현재 GitHub Actions 스케줄은 비활성화되어 있습니다. 로컬 Windows Task Scheduler는 매일 오전 6시에 `run_apple_scout.bat`를 실행합니다.
 
-### 시간 변경하려면
+### GitHub Actions 스케줄을 다시 켜려면
 
-`.github/workflows/daily-news.yml` 파일의 cron 수정:
+`.github/workflows/daily-news.yml` 파일에 `schedule` 트리거를 다시 추가합니다:
 
 ```yaml
-schedule:
-  - cron: '0 13 * * *'  # UTC 13:00 = CST 7:00 AM
+on:
+  schedule:
+    - cron: '0 12 * * *'  # UTC 12:00 = CST 6:00 AM
+  workflow_dispatch:
 ```
 
 #### 다른 시간 예시
 
-- `0 14 * * *` - 오전 8시 (CST)
 - `0 12 * * *` - 오전 6시 (CST)
+- `0 13 * * *` - 오전 7시 (CST)
+- `0 14 * * *` - 오전 8시 (CST)
 - `0 1 * * *` - 오후 7시 (CST)
 
 > **참고**: GitHub Actions는 UTC 기준입니다. CST는 UTC-6입니다.
@@ -119,7 +122,7 @@ schedule:
 
 ## ✅ 완료
 
-이제 매일 아침 7시에 자동으로:
+수동 실행 또는 로컬 스케줄러 실행 시 다음 작업이 수행됩니다:
 
 1. 🍎 애플 뉴스 50개 수집
 2. 💬 소셜 미디어 포스트 수집
@@ -182,7 +185,7 @@ schedule:
 
 ```yaml
 schedule:
-  - cron: '0 13 * * *'  # 오전 7시
+  - cron: '0 12 * * *'  # 오전 6시
   - cron: '0 1 * * *'   # 오후 7시
 ```
 
@@ -190,7 +193,7 @@ schedule:
 
 ```yaml
 schedule:
-  - cron: '0 13 * * 1-5'  # 월-금만
+  - cron: '0 12 * * 1-5'  # 월-금 오전 6시
 ```
 
 ### 알림 끄기
@@ -201,4 +204,4 @@ schedule:
 
 ## 🎉 성공
 
-이제 컴퓨터를 끄고 있어도 매일 아침 애플 뉴스 리포트를 받을 수 있습니다! 🚀
+GitHub Actions 스케줄을 다시 켜면 컴퓨터를 끄고 있어도 지정된 시간에 애플 뉴스 리포트를 받을 수 있습니다.

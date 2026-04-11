@@ -2,7 +2,7 @@
 
 ## Goal
 
-Gemini Pro 2.5를 사용하여 수집된 뉴스와 소셜 미디어를 고급 AI 분석합니다.
+Gemini를 사용하여 수집된 뉴스와 소셜 미디어를 고급 AI 분석합니다.
 
 ## Inputs
 
@@ -15,11 +15,13 @@ Gemini Pro 2.5를 사용하여 수집된 뉴스와 소셜 미디어를 고급 AI
 
 - `execution/analyze_with_gemini.py`
 
+Backward-compatible wrapper이며 실제 구현은 `applescout/scripts/analyze_gemini.py`입니다. 구현체는 `google-genai` SDK의 `google.genai` 클라이언트를 사용합니다.
+
 ## Analysis Features
 
 ### 1. AI 기반 감성 분석
 
-- Gemini Pro 2.5의 자연어 이해 능력 활용
+- Gemini의 자연어 이해 능력 활용
 - 단순 긍정/부정을 넘어선 뉘앙스 파악
 - 시장 심리 분석
 
@@ -86,7 +88,7 @@ Gemini Pro 2.5를 사용하여 수집된 뉴스와 소셜 미디어를 고급 AI
 
 ### 모델 선택
 
-- **gemini-2.0-flash-exp**: 빠르고 효율적, 무료 할당량 제공
+- **gemini-2.0-flash**: 빠르고 효율적, 무료 할당량 제공
 - 뉴스 분석에 최적화된 성능
 
 ### 비용
@@ -125,7 +127,7 @@ Gemini Pro 2.5를 사용하여 수집된 뉴스와 소셜 미디어를 고급 AI
 
 ## Advantages over TextBlob
 
-| 기능 | TextBlob | Gemini Pro 2.5 |
+| 기능 | TextBlob | Gemini |
 |------|----------|----------------|
 | 감성 분석 | 단순 점수 | 맥락 이해 |
 | 요약 | 없음 | 전문가 수준 |
