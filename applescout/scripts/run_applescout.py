@@ -47,6 +47,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the AppleScout workflow.")
     parser.add_argument("--dry-run", action="store_true", help="Skip Telegram delivery and write a preview instead.")
     parser.add_argument("--keep-tmp", action="store_true", help="Do not delete existing .tmp artifacts before running.")
+    parser.add_argument("--skip-reddit-voice", action="store_true", help="Skip Reddit AI voice digest step.")
     args = parser.parse_args(argv)
 
     print("🚀 Starting AppleScout Agent Daily Workflow")
@@ -59,6 +60,7 @@ def main(argv: list[str] | None = None) -> int:
     from applescout.scripts.collect_social import main as collect_social_main
     from applescout.scripts.collect_stock import main as collect_stock_main
     from applescout.scripts.send_report import main as send_report_main
+    from execution.reddit_voice_digest import main as reddit_voice_main
 
     steps = [
         ("뉴스 수집", collect_news_main, True, None),
@@ -67,6 +69,8 @@ def main(argv: list[str] | None = None) -> int:
         ("Gemini AI 분석", analyze_gemini_main, True, None),
         ("텔레그램 전송", send_report_main, True, ["--dry-run"] if args.dry_run else None),
     ]
+    if not args.skip_reddit_voice:
+        steps.append(("Reddit AI 음성 다이제스트", reddit_voice_main, False, None))
 
     results = []
     critical_failure = None

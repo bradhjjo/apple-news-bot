@@ -24,12 +24,15 @@ from __future__ import annotations
 import asyncio
 import html
 import os
+import re
 import sys
 import time
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
 from typing import Dict, List, Optional
+
+import xml.etree.ElementTree as ET
 
 import requests
 from dotenv import load_dotenv
@@ -58,9 +61,29 @@ DEFAULT_SUBREDDITS = [
     "PiCodingAgent",
 ]
 
-_REDDIT_HEADERS = {
+_RSS_HEADERS = {
     "User-Agent": "AppleScoutAIBot/1.0 (+https://github.com/bradhjjo/apple-news-bot)"
 }
+
+_RE_POINTS = re.compile(r"(\d+)\s+points?", re.IGNORECASE)
+_RE_COMMENTS = re.compile(r"(\d+)\s+comments?", re.IGNORECASE)
+
+# Atom namespace used by Reddit RSS
+_ATOM_NS = "http://www.w3.org/2005/Atom"
+
+
+def _parse_rss_time(value: str) -> float:
+    """Return UTC epoch from RFC-2822 or ISO-8601 string, or 0 on failure."""
+    from email.utils import parsedate_to_datetime
+    for parser in (
+        lambda v: parsedate_to_datetime(v),
+        lambda v: datetime.fromisoformat(v.replace("Z", "+00:00")),
+    ):
+        try:
+            return parser(value).timestamp()
+        except Exception:
+            continue
+    return 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -68,26 +91,37 @@ _REDDIT_HEADERS = {
 # ---------------------------------------------------------------------------
 
 def fetch_subreddit_posts(sub: str, hours: int = 6) -> List[Dict]:
-    """Fetch recent posts from a subreddit using the public JSON API."""
-    url = f"https://www.reddit.com/r/{sub}/new.json?limit=100"
+    """Fetch recent posts from a subreddit via the public Atom RSS feed."""
+    url = f"https://www.reddit.com/r/{sub}/hot.rss?limit=100"
     cutoff = time.time() - hours * 3600
     try:
-        resp = requests.get(url, headers=_REDDIT_HEADERS, timeout=15)
+        resp = requests.get(url, headers=_RSS_HEADERS, timeout=15)
         resp.raise_for_status()
-        data = resp.json()
+        root = ET.fromstring(resp.content)
+        ns = {"atom": _ATOM_NS}
         posts = []
-        for child in data.get("data", {}).get("children", []):
-            p = child.get("data", {})
-            created = p.get("created_utc", 0)
-            if created < cutoff:
+        for entry in root.findall("atom:entry", ns):
+            updated = entry.findtext("atom:updated", default="", namespaces=ns)
+            published = _parse_rss_time(updated)
+            if published and published < cutoff:
                 continue
+            title_el = entry.find("atom:title", ns)
+            link_el = entry.find("atom:link", ns)
+            content_el = entry.find("atom:content", ns)
+            title = title_el.text if title_el is not None else ""
+            url_post = link_el.get("href", "") if link_el is not None else ""
+            content = content_el.text or "" if content_el is not None else ""
+            points_m = _RE_POINTS.search(content)
+            comments_m = _RE_COMMENTS.search(content)
+            score = int(points_m.group(1)) if points_m else 0
+            num_comments = int(comments_m.group(1)) if comments_m else 0
             posts.append({
-                "title": p.get("title", ""),
-                "url": f"https://reddit.com{p.get('permalink', '')}",
-                "score": p.get("score", 0),
-                "num_comments": p.get("num_comments", 0),
-                "subreddit": p.get("subreddit", sub),
-                "created_utc": created,
+                "title": title,
+                "url": url_post,
+                "score": score,
+                "num_comments": num_comments,
+                "subreddit": sub,
+                "created_utc": published,
             })
         print(f"  ✓ r/{sub}: {len(posts)}개 (최근 {hours}h)")
         return posts
@@ -100,10 +134,13 @@ def collect_top_posts(subreddits: List[str], hours: int, top_n: int) -> List[Dic
     """Collect, deduplicate, and rank posts from all subreddits."""
     all_posts: Dict[str, Dict] = {}
     for sub in subreddits:
-        for post in fetch_subreddit_posts(sub, hours):
-            url = post["url"]
-            if url not in all_posts:
-                all_posts[url] = post
+        try:
+            for post in fetch_subreddit_posts(sub, hours):
+                url = post["url"]
+                if url not in all_posts:
+                    all_posts[url] = post
+        except Exception as exc:
+            print(f"  ✗ r/{sub} 처리 중 오류: {exc}")
         time.sleep(1)  # Reddit rate limit 준수
 
     ranked = sorted(
