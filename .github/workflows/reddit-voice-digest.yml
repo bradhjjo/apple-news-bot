@@ -1,0 +1,62 @@
+name: Reddit AI Voice Digest
+
+on:
+  schedule:
+    # 6시간마다 실행 (UTC 0, 6, 12, 18시 = KST 9, 15, 21, 3시)
+    - cron: '0 0,6,12,18 * * *'
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: '수집 시간 범위 (기본: 6)'
+        required: false
+        default: '6'
+      top_n:
+        description: '상위 게시글 수 (기본: 20)'
+        required: false
+        default: '20'
+      dry_run:
+        description: 'DRY_RUN (Telegram 전송 없이 테스트)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+jobs:
+  reddit-voice-digest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Reddit AI Voice Digest
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          AI_REDDIT_HOURS: ${{ github.event.inputs.hours || '6' }}
+          AI_REDDIT_TOP_N: ${{ github.event.inputs.top_n || '20' }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+        run: |
+          python execution/reddit_voice_digest.py
+
+      - name: Upload logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reddit-voice-digest-error
+          path: .tmp/
+          retention-days: 7
