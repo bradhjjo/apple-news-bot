@@ -1,9 +1,9 @@
 name: Reddit AI Voice Digest
 
 on:
-  schedule:
-    # 6시간마다 실행 (UTC 0, 6, 12, 18시 = KST 9, 15, 21, 3시)
-    - cron: '0 0,6,12,18 * * *'
+  # 스케줄 비활성화 - 수동 실행만 가능
+  # schedule:
+  #   - cron: '0 0,6,12,18 * * *'
   workflow_dispatch:
     inputs:
       hours:
